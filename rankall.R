@@ -15,26 +15,32 @@ rankall <- function(outcome, num = "best") {
 
   # get only relevant data - hospital name and outcome. filter not avialable.
   tcol <- validOutcomes[outcome]
-  available <- outcomeDF[stateData[tcol] != "Not Available", 
-                         c("Hospital.Name", tcol)]
+  available <- outcomeDF[outcomeDF[tcol] != "Not Available", 
+                         c("State","Hospital.Name", tcol)]
   
-  # normalize rank to number
-  ranks <- length(unique(available$Hospital.Name))
-  if (num == "best") {
-    num = 1
-  } else if (num == "worst") {
-    num = ranks
-  } else if (num > ranks) {
-    return(NA)
-  }
-  
-  ret <- data.frame(row.names = c("State","Hospital.Name"))
+  ret <- data.frame(hospital=character(), state=character())
+  #names(ret) <- c("hospital", "state")
   ## For each state, find the hospital of the given rank
   for (state in unique(available$State)) {
-    dState <- available["State" == state]
-    dState <- dState[order(dState[tcol],dState$Hospital.Name)]
+    # get ordered data for current state
+    dState <- available[available$State == state,]
+    dState <- dState[order(as.numeric(unlist(dState[tcol])),dState$Hospital.Name),]
     
+    # normalize rank to number
+    ranks <- length(dState$Hospital.Name)
+    if (num == "best") {
+      num = 1
+    } else if (num == "worst") {
+      num = ranks
+    } 
+    
+    ret <- rbind(ret, c("hospital"=dState[num,"Hospital.Name"],"state"=state))
   }
+  # rbind messes up col names for some reason. fix it.
+  names(ret) <- c('hospital','state')
+  row.names(ret) <- ret$state
+  
   ## Return a data frame with the hospital names and the
   ## (abbreviated) state name
+  ret[order(ret$state),]
 }
